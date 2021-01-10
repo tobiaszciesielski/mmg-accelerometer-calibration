@@ -1,6 +1,8 @@
-import numpy as np
+from decoder import process_json
+import json
+from buffer import Buffer
 
-calibration_messages = [
+CALIBRATION_MESSAGES = [
     "Xmin",
     "Xmax",
     "Ymin",
@@ -9,17 +11,33 @@ calibration_messages = [
     "Zmax",
 ]
 
-samples_per_axis = 1
-fake_packet = np.zeros((8, 9), dtype=int)
+def read_config():
+    with open("./config.json") as file:
+        return json.load(file)
 
-from buffer import Buffer
-buffer = Buffer(samples_per_axis)
+def collect_data(axis:int, buffer:Buffer): 
+    counter = 0
+    while True:
+        fake_data = input("enter fake data:")
+        package = process_json(fake_data)
+        for packet in package:
+            if not buffer.append(axis, packet):
+                return
+            else:
+                counter+=1
+                print(counter)
 
-for i in range(6):
-    input("({}/6) Place band to calibrate {}".format(i+1, calibration_messages[i]))
-    for j in range(samples_per_axis):
-        buffer.append(axis=j, packet=fake_packet)
-        
-buffer.print()
 
+def calibrate(config:dict):
+    samples_per_axis = config["samples_per_axis"]
+    buffer = Buffer(samples_per_axis)
     
+    for i in range(6):
+        input("({}/6) Preapare band to calibrate {} axis and press enter.".format(i+1, CALIBRATION_MESSAGES[i]))
+        collect_data(axis=i, buffer=buffer)
+            
+    buffer.print()
+
+if __name__ == "__main__":
+    config = read_config()
+    calibrate(config)
