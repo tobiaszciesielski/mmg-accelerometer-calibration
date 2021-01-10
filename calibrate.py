@@ -1,15 +1,24 @@
 import json
 import paho.mqtt.client as mqtt
-from decoder import decode_json
+from decoder import process_json
 
+packet_counter = 0
 def on_message(client, userdata, msg):
-    packets= decode_json(str(msg.payload.decode('utf-8')))
-    for packet in packets:
-      buffer.append(sample)
+  global packet_counter
 
-client = mqtt.Client()
-client.on_connect = lambda client, userdata, flags, rc: client.subscribe("sensors/data/mmg")
-client.on_message = on_message
+  package = process_json(str(msg.payload.decode('utf-8')))
+  for packet in package:
+    packet_counter+=1
+    if packet_counter == 100:
+      client.publish("sensors/control/mmg", "stop")
+      print("INTERVAL")
+      # client.publish("sensors/control/mmg", "start")
+      packet_counter=0
+    print(packet_counter)
 
-client.connect("192.168.1.26", 1883, 60)
-client.loop_forever()
+c = mqtt.Client()
+c.on_connect = lambda c, userdata, flags, rc: c.subscribe("sensors/data/mmg")
+c.on_message = on_message
+c.connect("192.168.1.26", 1883, 60)
+c.publish("sensors/control/mmg", "start")
+c.loop_forever()

@@ -34,6 +34,7 @@ def calibrate(config:dict):
     
     for i in range(6):
         input("({}/6) Preapare band to calibrate {} axis and press enter.".format(i+1, CALIBRATION_MESSAGES[i]))
+        
         collect_data(axis=i, buffer=buffer)
             
     buffer.print()
