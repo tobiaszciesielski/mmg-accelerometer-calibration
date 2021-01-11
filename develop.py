@@ -3,6 +3,23 @@ import paho.mqtt.client as mqtt
 from decoder import process_json
 from buffer import Buffer
 
+def read_config():
+    with open("./config.json") as file:
+        return json.load(file)
+
+# ================
+# GLOBAL VARIABLES
+
+config = read_config()
+
+SAMPLES_PER_AXIS = config["samples_per_axis"]
+DATA_STREAM_TOPIC  = config["data_stream_topic"]
+BROKER_IP = config["broker_ip"]
+BROKER_PORT = config["broker_port"]
+CONTROL_TOPIC = config["control_topic"]
+
+buffer = Buffer(SAMPLES_PER_AXIS)
+packet_counter = 0
 
 CALIBRATION_MESSAGES = [
     "Xmin",
@@ -13,59 +30,56 @@ CALIBRATION_MESSAGES = [
     "Zmax",
 ]
 
+# ================
 
-def read_config():
-    with open("./config.json") as file:
-        return json.load(file)
+def connect_to_broker(client:mqtt.Client):
+    client.connect(BROKER_IP, BROKER_PORT)
 
 
-packet_counter = 0
-def on_message(client, userdata, msg):
-  global packet_counter
+def stop_stream(client:mqtt.Client):
+    client.publish(CONTROL_TOPIC, "stop")
+
+
+def start_stream(client:mqtt.Client):
+    client.publish(CONTROL_TOPIC, "start")
+
+
+def on_message(client:mqtt.Client, userdata, msg):
+  global packet_counter, buffer
 
   package = process_json(str(msg.payload.decode('utf-8')))
-  for packet in package:
+  
+  for packet in package: 
+    if packet_counter == SAMPLES_PER_AXIS:
+        stop_stream(client)
+        client.disconnect()
+    elif packet_counter < SAMPLES_PER_AXIS:
+        buffer.append(packet)
+
     packet_counter+=1
-    if packet_counter == 100:
-      client.publish("sensors/control/mmg", "stop")
-      print("INTERVAL")
-      # client.publish("sensors/control/mmg", "start")
-      packet_counter=0
-    print(packet_counter)
 
 
-def collect_data(axis:int, buffer:Buffer): 
-    counter = 0
-    while True:
-        fake_data = input("enter fake data:")
-        package = process_json(fake_data)
-        for packet in package:
-            if not buffer.append(axis, packet):
-                return
-            else:
-                counter+=1
-                print(counter)
+def calibrate():
+    global packet_counter
 
-
-def calibrate(config:dict):
-    samples_per_axis = config["samples_per_axis"]
     mqtt_client = mqtt.Client()
-    mqtt_client.on_connect = lambda c, userdata, flags, rc: c.subscribe("sensors/data/mmg")
+    mqtt_client.on_connect = lambda c, userdata, flags, rc: c.subscribe(DATA_STREAM_TOPIC)
     mqtt_client.on_message = on_message
-    mqtt_client.connect("192.168.1.26", 1883, 60)
-    mqtt_client.publish("sensors/control/mmg", "start")
-    mqtt_client.loop_forever()
-    # buffer = Buffer(samples_per_axis)
+    connect_to_broker(mqtt_client)
     
     for i in range(6):
-        input("({}/6) Preapare band to calibrate {} axis and press enter.".format(i+1, CALIBRATION_MESSAGES[i]))
-        mqtt_client.publish("sensors/control/mmg", "start")
-        # collect_data(axis=i, buffer=buffer)
-        
-    mqtt_client.publish("sensors/control/mmg", "stop")
-    # buffer.print()
+        packet_counter = 0    
+        input("({}/6) Prepare {} axis and press enter.".format(i+1, CALIBRATION_MESSAGES[i]))
+        print("Collecting data...")
+        connect_to_broker(mqtt_client)
+        start_stream(mqtt_client)
+        mqtt_client.loop_forever()
+
+    stop_stream(mqtt_client)
+    mqtt_client.disconnect()
+    
+    print("Calibration completed.")
 
 
 if __name__ == "__main__":
-    config = read_config()
-    calibrate(config)
+    calibrate()
