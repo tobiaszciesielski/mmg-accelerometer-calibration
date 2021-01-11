@@ -32,6 +32,51 @@ CALIBRATION_MESSAGES = [
 
 # ================
 
+def save_to_file(params):
+    with open("calibration_params.json", 'w') as file:
+        file.write(json.dumps(params))
+
+def compute_calibration_params():
+    import numpy as np
+
+    def find_zero(a, b):
+        return (a + b) / 2 
+
+    def count_k(a, b):
+        return (b - a) / 2
+
+    buffer.save()
+    
+    accelerometer_values = buffer.get_all()[:,:,:,0:3]
+    extreme_values = np.round(np.mean(accelerometer_values, axis=1, dtype=int))
+    Xmin = extreme_values[0,:,0]
+    Xmax = extreme_values[1,:,0]
+    Ymin = extreme_values[2,:,1]
+    Ymax = extreme_values[3,:,1]
+    Zmin = extreme_values[4,:,2]
+    Zmax = extreme_values[5,:,2]
+
+    X_zero = find_zero(Xmin, Xmax)
+    X_k = count_k(Xmin, Xmax)
+
+    Y_zero = find_zero(Ymin, Ymax)
+    Y_k = count_k(Ymin, Ymax)
+
+    Z_zero = find_zero(Zmin, Zmax)
+    Z_k = count_k(Zmin, Zmax)
+
+    dict_to_json = {
+        "X_0":np.round(X_zero).tolist(),
+        "Y_k":np.round(Y_k).tolist(),
+        "Y_0":np.round(Y_zero).tolist(),
+        "X_k":np.round(X_k).tolist(),
+        "Z_0":np.round(Z_zero).tolist(),
+        "Z_k":np.round(Z_k).tolist(),
+    }
+    
+    return dict_to_json
+
+
 def connect_to_broker(client:mqtt.Client):
     client.connect(BROKER_IP, BROKER_PORT)
 
@@ -78,10 +123,15 @@ def calibrate():
     stop_stream(mqtt_client)
     mqtt_client.disconnect()
     
-    # with open("result.json", 'w') as file:
-    #     file.write()
+    
+    print("Computing parameters...")
+    params = compute_calibration_params()
+
+
+    print("Saving to file...")
+    save_to_file(params)
+
     print("Calibration completed.")
-    buffer.save()
     
 
 

@@ -16,13 +16,14 @@ class Buffer:
             self.head = 0
             self.axis+=1
 
-    def filled(self):
+    def filled(self) -> bool:
         return False if self.head < self.samples_per_axis else True     
     
     def print(self):
         print(self.buffer)
 
+    def get_all(self) -> np.ndarray:
+        return np.copy(self.buffer)
+
     def save(self):
-        from tempfile import TemporaryFile
-        outfile = TemporaryFile()
-        np.save("numpy", self.buffer)
+        np.save("last_calibration_samples", self.buffer)
