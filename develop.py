@@ -4,7 +4,7 @@ from decoder import process_json
 from buffer import Buffer
 
 def read_config():
-    with open("./config.json") as file:
+    with open("./config.json", "r") as file:
         return json.load(file)
 
 # ================
@@ -78,7 +78,11 @@ def calibrate():
     stop_stream(mqtt_client)
     mqtt_client.disconnect()
     
+    # with open("result.json", 'w') as file:
+    #     file.write()
     print("Calibration completed.")
+    buffer.save()
+    
 
 
 if __name__ == "__main__":

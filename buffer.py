@@ -21,3 +21,8 @@ class Buffer:
     
     def print(self):
         print(self.buffer)
+
+    def save(self):
+        from tempfile import TemporaryFile
+        outfile = TemporaryFile()
+        np.save("numpy", self.buffer)
