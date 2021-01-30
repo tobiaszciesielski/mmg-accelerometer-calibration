@@ -1,6 +1,6 @@
 {
     "samples_per_axis": 200,
-    "broker_ip": "192.168.1.26",
+    "broker_ip": "192.168.1.102",
     "broker_port": 1883,
     "data_stream_topic":"sensors/data/mmg",
     "control_topic":"sensors/control/mmg"

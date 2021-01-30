@@ -37,6 +37,7 @@ def save_to_file(params):
         file.write(json.dumps(params))
 
 def compute_calibration_params():
+    
     import numpy as np
 
     def find_zero(a, b):
@@ -46,7 +47,7 @@ def compute_calibration_params():
         return (b - a) / 2
 
     buffer.save()
-    
+
     accelerometer_values = buffer.get_all()[:,:,:,0:3]
     extreme_values = np.round(np.mean(accelerometer_values, axis=1, dtype=int))
     Xmin = extreme_values[0,:,0]
@@ -112,6 +113,8 @@ def calibrate():
     mqtt_client.on_message = on_message
     connect_to_broker(mqtt_client)
     
+    
+
     for i in range(6):
         packet_counter = 0    
         input("({}/6) Prepare {} axis and press enter.".format(i+1, CALIBRATION_MESSAGES[i]))
